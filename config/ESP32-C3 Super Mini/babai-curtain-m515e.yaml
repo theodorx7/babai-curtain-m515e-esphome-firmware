@@ -1,0 +1,425 @@
+external_components:
+  - source: github://theodorx7/esphome-miot@main  # Fork of esphome-miot with component-level polling disabled
+
+esphome:
+  name: babai-curtain-m515e
+  friendly_name: "Zemismart Curtain"
+#  compile_process_limit: 2      # Limited resource allocation — if compilation hangs on low-performance systems.
+
+  on_boot:
+    then:
+      - script.execute: boot_wifi_failsafe
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_BT_ENABLED: "n"
+
+logger:
+  level: ERROR
+  baud_rate: 0
+
+api:
+  encryption:
+    key: !secret encryption_key  # Set your key in secrets.yaml
+  actions:
+    - action: mcu_command
+      variables:
+        command: string
+      then:
+        - lambda: |-
+            id(miot_main).queue_command(command);
+
+  on_client_connected:
+    then:
+      - delay: 5s
+      - lambda: |-
+          id(miot_main).queue_command("MIIO_net_change cloud");
+
+ota:
+  - platform: esphome
+    password: !secret ota_password  # Set your password in secrets.yaml
+  - platform: web_server
+
+wifi:
+  enable_on_boot: false   # Wi-Fi is not enabled on boot, and the connection to the HA API is not established until `cover` receives an actual status from the motor. Otherwise, boot_wifi_failsafe will trigger after 3 minutes and enable Wi-Fi
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password  # Set your password in secrets.yaml
+  min_auth_mode: WPA2
+  ap:
+    ssid: "Zemismart-Curtain"
+    password: "12345678"  # Set your password
+
+web_server:
+  log: false
+  port: 80
+  # auth:
+  #   username: admin
+  #   password: admin
+
+uart:
+  id: miot_uart
+  baud_rate: 115200
+  tx_pin: GPIO21
+  rx_pin: GPIO20
+
+miot:
+  id: miot_main
+  uart_id: miot_uart
+
+
+globals:
+  - id: boot_position_synced
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: ha_move_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: drop_next_pos
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: last_target_pct
+    type: int
+    restore_value: no
+    initial_value: "-1"
+  - id: last_command_sent_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+
+
+# Component-level polling is disabled in the custom esphome-miot fork.
+# Cached MCU state must not be polled during movement, otherwise stale position values
+# can overwrite the locally generated cover state.
+# Manual polling is therefore allowed only when the cover is idle.
+interval:
+  # Triggered when the communication module reboots to obtain the actual status from the motor - status debouncing.
+  - interval: 5s
+    then:
+      - if:
+          condition:
+            lambda: 'return !id(boot_position_synced);'
+          then:
+            - lambda: |-
+                id(miot_main).queue_command("set_properties 2 1 0");  // STOP actively request actual motor position
+
+  - interval: 60s
+    then:
+      - if:
+          condition:
+            lambda: 'return !id(ha_move_active);'
+          then:
+            - script.execute: polling
+
+
+script:
+  # Failsafe Wi-Fi enable if the MCU does not report the position status after the communication module reboots.
+  - id: boot_wifi_failsafe
+    mode: single
+    then:
+      - delay: 3min
+      - if:
+          condition:
+            lambda: 'return !id(boot_position_synced);'
+          then:
+            - wifi.enable:
+
+  # Runs only outside of HA-initiated movement to avoid publishing stale cached MCU state.
+  - id: polling
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return !id(ha_move_active);'
+          then:
+            - lambda: |-
+                id(miot_main).queue_command("get_properties 2 1 2 2 2 3 2 4 3 1 3 2");
+
+
+  # RF command throttling. The motor may miss commands if they are sent too quickly.
+  # Script mode is "restart", so a newer command replaces the pending one: only the last pending command is actually sent to MCU.
+  - id: mcu_send_throttled
+    mode: restart
+    parameters:
+      cmd: string
+    then:
+      - while:
+          condition:
+            lambda: |-
+              const uint32_t now  = millis();
+              const uint32_t last = id(last_command_sent_ms);
+              if (last == 0) return false;
+              return (now - last) < 1000;
+          then:
+            - delay: 500ms
+      - lambda: |-
+          id(miot_main).queue_command(cmd);
+          uint32_t now = millis();
+          if (now == 0) now = 1;
+          id(last_command_sent_ms) = now;
+
+
+  # Watchdog for HA-initiated movement.
+  # If the motor never reports the final position, force the cover back to IDLE,
+  # send STOP and resync state to prevent stuck Opening/Closing state in HA.
+  - id: ha_move_watchdog
+    mode: restart
+    then:
+      - delay: 60s  # Opening time from 0 to 100 + reserve compensation for slower opening when the motor battery charge is low
+      - if:
+          condition:
+            lambda: 'return id(ha_move_active);'
+          then:
+            - lambda: |-
+                id(ha_move_active) = false;
+                id(drop_next_pos) = false;
+                id(last_target_pct) = -1;
+                id(miot_main).queue_command("set_properties 2 1 0");
+            - cover.template.publish:
+                id: main_cover
+                current_operation: IDLE
+            - script.execute: polling
+
+
+sensor:
+  - platform: miot
+    internal: true
+    name: "Current Position"
+    id: miot_current_pos
+    miot_siid: 2
+    miot_piid: 2
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+
+    filters:
+      - lambda: |-
+          // Early-status guard window after a HA command.
+          // MCU may publish stale echo of the previous position immediately after a new command.
+          // During this short window, values equal to the old position or far from the new target are discarded.
+          const uint32_t GUARD_MS = 1500;
+          if (id(ha_move_active) && id(last_target_pct) >= 0) {
+            const uint32_t last = id(last_command_sent_ms);
+            if (last != 0) {
+              const uint32_t age = millis() - last;
+              if (age < GUARD_MS) {
+                const int tgt = id(last_target_pct);
+                const int xi  = (int) lroundf(x);
+                const float prev_f = id(miot_current_pos).state;
+                if (!std::isnan(prev_f) && xi == (int) lroundf(prev_f)) {
+                  return {};
+                }
+                const int d = xi - tgt;
+                if (d > 1 || d < -1) {
+                  return {};
+                }
+              }
+            }
+          }
+          // Drop one immediate echo update right after HA command dispatch.
+          if (id(ha_move_active) && id(drop_next_pos)) {
+            id(drop_next_pos) = false;
+            return {};
+          }
+          // Normalize final ±1% jitter to the requested target position.
+          const int t = id(last_target_pct);
+          if (t >= 0) {
+            const int xi = (int) lroundf(x);
+            const int d = xi - t;
+            if (d == 1 || d == -1) {
+              return (float) t;
+            }
+          }
+          return x;
+
+    on_value:
+      then:
+        # The first valid response from the MCU after a power cycle or communication module reboot.
+        - if:
+            condition:
+              lambda: 'return !id(boot_position_synced);'
+            then:
+              - lambda: |-
+                  id(boot_position_synced) = true;
+              - wifi.enable:
+              - script.stop: boot_wifi_failsafe
+
+        # Accepted position update is treated as end-of-motion.
+        # The motor does not stream live position, so a valid position report means motion has completed.
+        - lambda: |-
+            id(drop_next_pos) = false;
+            id(ha_move_active) = false;
+
+        - cover.template.publish:
+            id: main_cover
+            position: !lambda 'return x / 100.0f;'
+            current_operation: IDLE
+
+
+#  - platform: wifi_signal
+#    name: "WiFi Signal"
+#    update_interval: 60s
+#    unit_of_measurement: "dBm"
+#    accuracy_decimals: 0
+#    entity_category: diagnostic
+
+
+# Local cover state machine.
+# The motor does not provide movement states and only reports final position,
+# so Opening/Closing/Idle are synthesized locally and confirmed by final position updates.
+cover:
+  - platform: template
+    name: None
+    id: main_cover
+    device_class: blind
+    has_position: true
+    optimistic: false
+    assumed_state: true
+
+    # Absolute target movement.
+    # Local movement state is published immediately; final position and idle state are confirmed later by motor report.
+    position_action:
+        - lambda: |-
+            const int tgt = (int) lroundf(pos * 100.0f);
+            const float cur_f = id(miot_current_pos).state;
+            id(last_target_pct) = tgt;
+            const bool noop =
+                (!std::isnan(cur_f)) &&
+                (tgt == (int) lroundf(cur_f));
+            if (!noop) {
+              id(ha_move_active) = true;
+              id(drop_next_pos) = true;
+            } else {
+              id(ha_move_active) = false;
+              id(drop_next_pos) = false;
+            }
+        - if:
+            condition:
+              lambda: 'return id(ha_move_active);'
+            then:
+              - script.execute: ha_move_watchdog
+        - cover.template.publish:
+            id: main_cover
+            current_operation: !lambda |-
+              if (!id(ha_move_active)) return COVER_OPERATION_IDLE;
+              const float cur_f = id(miot_current_pos).state;
+              const int tgt = (int) lroundf(pos * 100.0f);
+              if (std::isnan(cur_f)) {
+                return (pos >= 0.5f) ? COVER_OPERATION_OPENING : COVER_OPERATION_CLOSING;
+              }
+              const int cur = (int) lroundf(cur_f);
+              return (tgt > cur) ? COVER_OPERATION_OPENING : COVER_OPERATION_CLOSING;
+        - lambda: |-
+            const int tgt = (int) lroundf(pos * 100.0f);
+            char cmd[32];
+            snprintf(cmd, sizeof(cmd), "set_properties 2 3 %d", tgt);
+            id(mcu_send_throttled)->execute(std::string(cmd));
+
+    # OPEN command.
+    # During movement, miot_current_pos may still hold the start position,
+    # so noop is allowed only when no HA movement is already active.
+    open_action:
+      - lambda: |-
+          id(last_target_pct) = 100;
+          const float cur_f = id(miot_current_pos).state;
+          const bool at_100 = (!std::isnan(cur_f)) && ((int) lroundf(cur_f) == 100);
+          const bool noop = (!id(ha_move_active)) && at_100;
+          if (!noop) {
+            id(ha_move_active) = true;
+            id(drop_next_pos) = true;
+          } else {
+            id(ha_move_active) = false;
+            id(drop_next_pos) = false;
+          }
+      - if:
+          condition:
+            lambda: 'return id(ha_move_active);'
+          then:
+            - script.execute: ha_move_watchdog
+            - cover.template.publish:
+                id: main_cover
+                current_operation: !lambda |-
+                  return COVER_OPERATION_OPENING;
+      - script.execute:
+          id: mcu_send_throttled
+          cmd: "set_properties 2 1 1"
+
+    # CLOSE command.
+    # During movement, miot_current_pos may still hold the start position,
+    # so noop is allowed only when no HA movement is already active.
+    close_action:
+      - lambda: |-
+          id(last_target_pct) = 0;
+          const float cur_f = id(miot_current_pos).state;
+          const bool at_0 = (!std::isnan(cur_f)) && ((int) lroundf(cur_f) == 0);
+          const bool noop = (!id(ha_move_active)) && at_0;
+          if (!noop) {
+            id(ha_move_active) = true;
+            id(drop_next_pos) = true;
+          } else {
+            id(ha_move_active) = false;
+            id(drop_next_pos) = false;
+          }
+      - if:
+          condition:
+            lambda: 'return id(ha_move_active);'
+          then:
+            - script.execute: ha_move_watchdog
+            - cover.template.publish:
+                id: main_cover
+                current_operation: !lambda |-
+                  return COVER_OPERATION_CLOSING;
+      - script.execute:
+          id: mcu_send_throttled
+          cmd: "set_properties 2 1 2"
+
+    # STOP clears local HA movement context so old target value no longer affects input filtering.
+    stop_action:
+      - lambda: |-
+          id(ha_move_active) = false;
+          id(drop_next_pos) = false;
+          id(last_target_pct) = -1;
+      - script.execute:
+          id: mcu_send_throttled
+          cmd: "set_properties 2 1 0"
+
+
+select:
+  - platform: miot
+    name: "Set Limits"
+    id: miot_limit_setting_select
+    miot_siid: 3
+    miot_piid: 2
+    icon: "mdi:tune-vertical-variant"
+    entity_category: "config"
+    options:
+      "0": "Clear Limits"
+      "1": "Set Up Limit"
+      "2": "Set Down Limit"
+
+
+  - platform: miot
+    name: "Roller Mode"
+    miot_siid: 2
+    miot_piid: 4
+    icon: "mdi:swap-vertical"
+    entity_category: "config"
+    options:
+      "0": "Normal"
+      "1": "Reversal"
+
+
+# Works only in upper and lower limit setting mode.
+# In essence, this is a useless entity, since the motor speed is easier to adjust using single/double presses of the buttons on the motor itself.
+# And it can only be useful once, when setting the opening limits.
+#switch:
+#  - platform: miot
+#    name: "Roller Micro-Move"
+#    icon: "mdi:cog-box"
+#    miot_siid: 3
+#    miot_piid: 1
+#    entity_category: "config"
