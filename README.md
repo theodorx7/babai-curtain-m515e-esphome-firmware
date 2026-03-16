@@ -4,7 +4,7 @@
 
 
 > [!TIP]
-> This modification method and/or firmware configuration can be used not only for babai.curtain.m515e, but also for other similar devices in the Tuya and Xiaomi ecosystems.
+> This method of modification and/or firmware configuration can also be used for other Zemismart motor models in the Tuya and Xiaomi ecosystems.
 
 <br/>
 The first version of my smart home was built on cloud technologies. However, I quickly realized that a smart home must be based exclusively on local control. Only local devices are capable of providing reliability and comfort. Otherwise, you risk disappointment.
