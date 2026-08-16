@@ -1,3 +1,4 @@
+[![Hits](https://hits.sh/github.com/theodorx7/babai-curtain-m515e-esphome-firmware.svg?style=for-the-badge)](https://hits.sh/github.com/theodorx7/babai-curtain-m515e-esphome-firmware/)
 # ESPHome firmware: Zemismart curtain / blind M515E   babai.curtain.m515e
 
 [English](./README.md) | [Russian](./README_RU.md)
