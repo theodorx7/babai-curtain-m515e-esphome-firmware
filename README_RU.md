@@ -200,7 +200,7 @@
   </a>
   <br>
   <a href=".github/DONATE.md">
-    <img src="https://img.shields.io/static/v1?label=USDT&message=SUPPORT&labelColor=26A17B&color=8b8b8b&style=for-the-badge&logo=tether&logoColor=white" alt="USDT TRC20">
+    <img src="https://img.shields.io/static/v1?label=SUPPORT&message=USDT%20&labelColor=555&color=26A17B&style=for-the-badge" alt="USDT TRC20">
   </a>
 </div>
 
