@@ -199,11 +199,10 @@ If you found this material useful, I would be grateful for your support 🙂
 
 
 <div align="left">
+    <a href=".github/DONATE.md">
+    <img src="https://img.shields.io/static/v1?label=USDT&message=SUPPORT&labelColor=26A17B&color=8b8b8b&style=for-the-badge&logo=tether&logoColor=white" alt="USDT TRC20"></a>
+  <br>
   <a href="https://donate.stream/donate_6a8404d5ea133">
     <img src="https://img.shields.io/badge/DONATE.steam-fc0?style=for-the-badge&logo=heart&logoColor=white" alt="DONAT.stream">
-  </a>
-  <br>
-  <a href=".github/DONATE.md">
-    <img src="https://img.shields.io/static/v1?label=USDT&message=SUPPORT&labelColor=26A17B&color=8b8b8b&style=for-the-badge&logo=tether&logoColor=white" alt="USDT TRC20">
   </a>
 </div>
