@@ -1,5 +1,5 @@
 <a href="https://hits.sh/github.com/theodorx7/babai-curtain-m515e-esphome-firmware/">
-  <img align="right" alt="Hits" src="https://hits.sh/github.com/theodorx7/babai-curtain-m515e-esphome-firmware.svg?style=for-the-badge">
+  <img align="right" alt="Hits" src="https://hits.sh/github.com/theodorx7/babai-curtain-m515e-esphome-firmware.svg?style=for-the-badge&color=555555">
 </a>
 
 # ESPHome firmware: Zemismart curtain / blind M515E   babai.curtain.m515e
@@ -194,4 +194,12 @@ For Roller Mode (siid2 piid4), the motor does not report state.
 
 
 <br/>
-If this material was useful or interesting to you, please leave a star 🙂
+If you found this material useful, I would be grateful for your support 🙂  
+
+<div align="right">
+  <a href=".github/DONATE.md"><img src="https://img.shields.io/badge/USDT-26A17B?style=for-the-badge&logo=tether&logoColor=white" alt="USDT TRC20"></a>
+  <br>
+  <a href="https://boosty.to/fedorx/donate"><img src="https://img.shields.io/static/v1?label=BOOSTY&message=DONATE&color=8b8b8b&labelColor=ef7729&logo=boosty&style=for-the-badge&logoColor=white" alt="Boosty"></a>
+</div>
+
+
