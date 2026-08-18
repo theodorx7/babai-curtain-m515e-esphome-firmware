@@ -197,9 +197,11 @@ For Roller Mode (siid2 piid4), the motor does not report state.
 If you found this material useful, I would be grateful for your support 🙂  
 
 <div align="right">
-  <a href=".github/DONATE.md"><img src="https://img.shields.io/badge/USDT-26A17B?style=for-the-badge&logo=tether&logoColor=white" alt="USDT TRC20"></a>
+  <a href="https://donate.stream/donate_6a8404d5ea133">
+    <img src="https://img.shields.io/badge/DONATE.steam-fc0?style=for-the-badge&logo=heart&logoColor=white" alt="DONAT.stream">
+  </a>
   <br>
-  <a href="https://boosty.to/fedorx/donate"><img src="https://img.shields.io/static/v1?label=BOOSTY&message=DONATE&color=8b8b8b&labelColor=ef7729&logo=boosty&style=for-the-badge&logoColor=white" alt="Boosty"></a>
+  <a href=".github/DONATE.md">
+    <img src="https://img.shields.io/static/v1?label=USDT&message=SUPPORT&labelColor=26A17B&color=8b8b8b&style=for-the-badge&logo=tether&logoColor=white" alt="USDT TRC20">
+  </a>
 </div>
-
-
