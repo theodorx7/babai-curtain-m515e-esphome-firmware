@@ -193,14 +193,5 @@
 Если для вас этот материал оказался полезным, буду благодарен за поддержку 🙂  
 </p>
 
-
-<div align="left">
-  <a href="https://donate.stream/donate_6a8404d5ea133">
-    <img src="https://img.shields.io/badge/DONATE.steam-fc0?style=for-the-badge&logo=heart&logoColor=white" alt="DONAT.stream">
-  </a>
-  <br>
-  <a href=".github/DONATE.md">
-    <img src="https://img.shields.io/static/v1?label=SUPPORT&message=USDT%20&labelColor=555&color=26A17B&style=for-the-badge" alt="USDT TRC20">
-  </a>
-</div>
+<a href="https://donate.stream/donate_6a8404d5ea133"><img src="https://img.shields.io/badge/DONATE.steam-fc0?style=for-the-badge&logo=heart&logoColor=white" alt="DONAT.stream"></a> &thinsp;&thinsp; <a href=".github/DONATE.md"><img src="https://img.shields.io/static/v1?label=SUPPORT&message=USDT%20&labelColor=555&color=26A17B&style=for-the-badge" alt="USDT TRC20"></a>
 
