@@ -188,10 +188,17 @@
 </details>
 
 
-
 <br/>
-Если для вас этот материал оказался полезным, буду благодарен за поддержку 🙂  
+<br/>
+Если для вас этот материал оказался полезным, буду благодарен за вашу поддержку 🙂  
 </p>
 
-<a href="https://donate.stream/donate_6a8404d5ea133"><img src="https://img.shields.io/badge/DONATE.steam-fc0?style=for-the-badge&logo=heart&logoColor=white" alt="DONAT.stream"></a> &thinsp;&thinsp; <a href=".github/DONATE.md"><img src="https://img.shields.io/static/v1?label=SUPPORT&message=USDT%20&labelColor=555&color=26A17B&style=for-the-badge" alt="USDT TRC20"></a>
+[![DONAT.stream](https://img.shields.io/badge/DONATE.steam-fc0?style=for-the-badge&logo=heart&logoColor=white)](https://donate.stream/donate_6a8404d5ea133)  
+
+![USDT](https://img.shields.io/badge/USDT-26A17B?style=for-the-badge&logo=tether&logoColor=white)  
+TRC20 — TQrwpY2LWF96YBbBSZZawRqQ6j9K4PzPQo   
+TON — EQBetln-nWakoK3LaTOn8l8oqnhNZgbVMHq_neSPPA6tS6nS  
+POLYGON — 0x8051a1cf7a3b41221d723f7eae77d59d14fb275b     
+ETHEREUM — 0x963798c6219b4df6442192be1c89a8b852cc4830   
+BEP20 — 0x2a1581bcbd2dc64b9d0f494c636d1d5dacb898e6  
 
