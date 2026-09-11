@@ -193,6 +193,7 @@ sensor:
     id: miot_current_pos
     miot_siid: 2
     miot_piid: 2
+    miot_poll: false
     unit_of_measurement: "%"
     accuracy_decimals: 0
 
