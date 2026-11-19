@@ -18,7 +18,7 @@ esp32:
       CONFIG_BT_ENABLED: "n"
 
 logger:
-  level: ERROR
+  level: WARN
   baud_rate: 0
 
 api:
